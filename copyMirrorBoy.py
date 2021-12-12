@@ -30,21 +30,34 @@ class MMGoodBoySolver(object):
         self.cc1 = cc1
         self.cc2 = cc2
 
-    def doGBThings(self, GB, gbU):
+    def doGBThings(self, GB, gbU, mirrorGB=-1):
         atk = GB[3]
         hel = GB[4]
+        if mirrorGB == 2:
+            GB[3] = 1
+            GB[4] = 1
         self.gb1[3] += gbU*atk
         self.gb1[4] += gbU*hel
         self.gb2[3] += gbU*atk
         self.gb2[4] += gbU*hel
 
-    def calcGB(self, goodCharsRem, mirrorGB):
+    def calcGB(self, goodCharsRem, gb, mirrorGB):
         totalStats = 0
         gbU1 = self.gb1[2]
         gbU2 = self.gb2[2]
-        totalStats += (self.gb1[3] * self.gb1[2] * goodCharsRem) + \
-                      (self.gb1[4] * self.gb1[2] * goodCharsRem)
-        pass
+        if gb == 1:
+            if mirrorGB == 1:
+                gbU1 = 1
+            totalStats += (self.gb1[3] * gbU1 * goodCharsRem) + \
+                          (self.gb1[4] * gbU1 * goodCharsRem)
+            self.doGBThings(self.gb1, gbU1, mirrorGB)
+        if gb == 2:
+            if mirrorGB == 1:
+                gbU2 = 1
+            totalStats += (self.gb2[3] * gbU2 * goodCharsRem) + \
+                          (self.gb2[4] * gbU2 * goodCharsRem)
+            self.doGBThings(self.gb2, gbU2, mirrorGB)
+        return totalStats
 
     def calcStatsGiven(self, goodCharsRem, cc, mirrorCC):
         totalStats = 0
@@ -90,18 +103,21 @@ class MMGoodBoySolver(object):
                     attackerPos += 1
                 if attackerPos >= 2:
                     break
-                mirrorCC = aliveList[attackerPos] == 1
+                mirrorGB = aliveList[attackerPos]
                 goodCharsRem = 3
                 for i in range(len(aliveList)):
                     if aliveList[i] > 0:
                         goodCharsRem += 1
-                statsGiven += self.calcStatsGiven(goodCharsRem, attackerPos+1, mirrorCC)
+                statsGiven += self.calcGB(goodCharsRem, attackerPos+1, mirrorGB)
                 aliveList[attackerPos] -= 1
                 newPosList = []
                 for i in range(len(aliveList)):
                     if aliveList[i] != 0:
                         newPosList.append(i)
                 atkPos = random.choice(newPosList)
+                if atkPos == 0 or atkPos == 1:
+                    mirrorGB = aliveList[atkPos]
+                    statsGiven += self.calcGB(goodCharsRem, atkPos+1, mirrorGB)
                 aliveList[atkPos] -= 1
                 newPosList = []
                 for i in range(len(aliveList)):
@@ -119,6 +135,9 @@ class MMGoodBoySolver(object):
                     if aliveList[i] != 0:
                         newPosList.append(i)
                 atkPos = random.choice(newPosList)
+                if atkPos == 0 or atkPos == 1:
+                    mirrorGB = aliveList[atkPos]
+                    statsGiven += self.calcGB(goodCharsRem, atkPos+1, mirrorGB)
                 aliveList[atkPos] -= 1
                 newPosList = []
                 for i in range(len(aliveList)):
@@ -128,8 +147,8 @@ class MMGoodBoySolver(object):
                     attackerPos += 1
                 if attackerPos >= 2:
                     break
-                mirrorCC = aliveList[attackerPos] == 1
-                statsGiven += self.calcStatsGiven(goodCharsRem, attackerPos+1, mirrorCC)
+                mirrorGB = aliveList[attackerPos] == 1
+                statsGiven += self.calcGB(goodCharsRem, attackerPos+1, mirrorGB)
                 aliveList[attackerPos] -= 1
                 newPosList = []
                 for i in range(len(aliveList)):
@@ -225,7 +244,13 @@ class MMGoodBoySolver(object):
     def simEV(self):
         totalStats = 0
         for i in range(1000):
-            totalStats += self.simCombatCC(crown=True, boots=False)
+            totalStats += self.simCombatCC(crown=False, boots=False)
+        return totalStats / 1000
+
+    def simEVGB(self):
+        totalStats = 0
+        for i in range(1000):
+            totalStats += self.simCombatGB(boots=False)
         return totalStats / 1000
 
 #########################################
@@ -233,12 +258,16 @@ class MMGoodBoySolver(object):
 #########################################
 
 def testSolveGB():
-    evList = 0
-    test = MMGoodBoySolver()
+    evListCC = 0
+    evListGB = 0
+    test = MMGoodBoySolver(gb1=[35,5,1,35,5],gb2=[5,5,1,5,5])
     for i in range(200):
         ev = test.simEV()
-        evList += ev
-    print(evList / 200)
+        evListCC += ev
+    for i in range(200):
+        ev = test.simEVGB()
+        evListGB += ev
+    print(evListCC / 200, evListGB / 200)
 
 
 #################################################
